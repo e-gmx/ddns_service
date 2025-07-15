@@ -44,9 +44,9 @@
         {% for record in dns_records %}
         <tr id="record-{{ record.RecordId }}">
             <td>{{ loop.index }}</td>
-            <td>{{ record.RR }}</td>
+            <td title="{{ record.RR }}" data-bs-toggle="tooltip">{{ record.RR }}</td>
             <td>{{ record.Type }}</td>
-            <td>{{ record.Value }}</td>
+            <td title="{{ record.Value }}" data-bs-toggle="tooltip">{{ record.Value }}</td>
             <td>{{ record.TTL }}</td>
             <td>
                 {% if record.Status == "ENABLE" %}
@@ -224,7 +224,12 @@ function fetchIpForRecord() {
 
 // 监听网卡切换也重新获取IP
 document.querySelector("select[name='ddns_interface']").addEventListener("change", fetchIpForRecord);
-
+document.addEventListener('DOMContentLoaded', function () {
+    let tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
 function submitAddRecord() {
     let form = document.getElementById("addRecordForm");
     let data = {
@@ -317,4 +322,17 @@ function updateRecordsTable(records) {
     });
 }
 </script>
+<style>
+.table td, .table th {
+    white-space: nowrap;        /* 禁止换行 */
+    text-overflow: ellipsis;   /* 溢出显示... */
+    overflow: hidden;          /* 隐藏超出部分 */
+    max-width: 200px;          /* 限制最大宽度，可调整 */
+}
+
+.table td[data-toggle="tooltip"] {
+    cursor: help;
+}
+</style>
+
 {% endblock %}
