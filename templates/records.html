@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>解析记录</h2>
+
+<!-- 域名选择 -->
+<form method="get" action="{{ url_for('records') }}" class="mb-3">
+    <div class="row">
+        <div class="col-md-4">
+            <select class="form-select" name="domain" onchange="this.form.submit()">
+                {% for domain in domains %}
+                    <option value="{{ domain }}"
+                        {% if domain == selected_domain %}selected{% endif %}>
+                        {{ domain }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button type="button" class="btn btn-success" onclick="showAddRecordModal()">新增记录</button>
+            <button type="button" class="btn btn-secondary" onclick="refreshRecords()">刷新记录</button>
+        </div>
+    </div>
+</form>
+
+<!-- 解析记录表格 -->
+{% if dns_records %}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>主机记录</th>
+            <th>类型</th>
+            <th>值</th>
+            <th>TTL</th>
+            <th>状态</th>
+            <th>更新记录时间</th>
+            <th>动态解析</th>
+            <th>网卡</th>
+            <th>IP类型</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in dns_records %}
+        <tr id="record-{{ record.RecordId }}">
+            <td>{{ loop.index }}</td>
+            <td>{{ record.RR }}</td>
+            <td>{{ record.Type }}</td>
+            <td>{{ record.Value }}</td>
+            <td>{{ record.TTL }}</td>
+            <td>
+                {% if record.Status == "ENABLE" %}
+                    <span class="badge bg-success">启用</span>
+                {% else %}
+                    <span class="badge bg-secondary">禁用</span>
+                {% endif %}
+            </td>
+            <td>{{ record.update_time }}</td>
+            <td>
+                {% if record.ddns_enabled %}
+                    <span class="badge bg-success">已启用</span>
+                {% else %}
+                    <span class="badge bg-secondary">未启用</span>
+                {% endif %}
+            </td>
+            <td>{{ record.ddns_interface }}</td>
+            <td>{{ record.ddns_ip_mode }}</td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteRecord('{{ record.RecordId }}')">删除</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="d-flex justify-content-between align-items-center my-3">
+    <div>
+        <form method="get" action="{{ url_for('records') }}">
+            <input type="hidden" name="domain" value="{{ selected_domain }}">
+            <label for="page_size">每页显示:</label>
+            <select name="page_size" id="page_size" onchange="this.form.submit()">
+                {% for size in [10, 20, 50, 100] %}
+                    <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <div>
+        <nav>
+            <ul class="pagination">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="?domain={{ selected_domain }}&page={{ page - 1 }}&page_size={{ page_size }}">上一页</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">第 {{ page }} 页 / 共 {{ total_pages }} 页</span>
+                </li>
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="?domain={{ selected_domain }}&page={{ page + 1 }}&page_size={{ page_size }}">下一页</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+{% else %}
+<div class="alert alert-warning">未获取到解析记录。</div>
+{% endif %}
+
+<!-- 新增记录模态框 -->
+<div class="modal" tabindex="-1" id="addRecordModal" style="display:none;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增解析记录</h5>
+        <button type="button" class="btn-close" onclick="hideAddRecordModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addRecordForm">
+          <div class="mb-3">
+            <label class="form-label">主机记录 (RR)</label>
+            <input type="text" class="form-control" name="rr" placeholder="www" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">记录类型</label>
+            <select class="form-select" name="type">
+              <option value="A">A</option>
+              <option value="CNAME">CNAME</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">记录值</label>
+            <input type="text" class="form-control" name="value" placeholder="1.2.3.4" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">TTL</label>
+            <input type="number" class="form-control" name="ttl" value="600" required>
+          </div>
+
+          <hr>
+          <!-- DDNS 开关 -->
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="enableDdnsSwitch" name="enable_ddns" onchange="toggleDdnsOptions()">
+          <label class="form-check-label" for="enableDdnsSwitch">启用动态域名解析 (DDNS)</label>
+        </div>
+
+        <!-- DDNS 配置区域 -->
+        <div id="ddnsOptions" style="display:none; margin-top:10px;">
+          <div class="mb-3">
+            <label class="form-label">选择网卡</label>
+            <select class="form-select" name="ddns_interface" onchange="fetchIpForRecord()">
+              {% for iface in interfaces %}
+                <option value="{{ iface.name }}">
+                  {{ iface.display_name }} - {{ iface.ip_list|join(', ') }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">IP来源</label><br>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="ddns_ip_mode" value="interface_ip" checked onchange="fetchIpForRecord()">
+              <label class="form-check-label">网卡IP</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="ddns_ip_mode" value="public_ip" onchange="fetchIpForRecord()">
+              <label class="form-check-label">互联网出口IP</label>
+            </div>
+          </div>
+        </div>
+
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="hideAddRecordModal()">取消</button>
+        <button type="button" class="btn btn-primary" onclick="submitAddRecord()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAddRecordModal() {
+    document.getElementById("addRecordModal").style.display = "block";
+}
+function hideAddRecordModal() {
+    document.getElementById("addRecordModal").style.display = "none";
+}
+function toggleDdnsOptions() {
+    let enabled = document.getElementById("enableDdnsSwitch").checked;
+    let ddnsOptions = document.getElementById("ddnsOptions");
+    let recordValueInput = document.querySelector("input[name='value']");
+    if (enabled) {
+        ddnsOptions.style.display = "block";
+        fetchIpForRecord(); // 🆕 启用后立即查询一次
+    } else {
+        ddnsOptions.style.display = "none";
+        recordValueInput.value = ""; // 清空记录值
+    }
+}
+
+function fetchIpForRecord() {
+    let iface = document.querySelector("select[name='ddns_interface']").value;
+    let ipMode = document.querySelector("input[name='ddns_ip_mode']:checked").value;
+
+    fetch("/get_ip", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            interface: iface,
+            ip_mode: ipMode
+        })
+    })
+    .then(res => res.json())
+    .then(result => {
+        let recordValueInput = document.querySelector("input[name='value']");
+        if (result.success) {
+            recordValueInput.value = result.ip;
+        } else {
+            alert("获取IP失败: " + result.message);
+        }
+    });
+}
+
+// 监听网卡切换也重新获取IP
+document.querySelector("select[name='ddns_interface']").addEventListener("change", fetchIpForRecord);
+
+function submitAddRecord() {
+    let form = document.getElementById("addRecordForm");
+    let data = {
+        domain: "{{ selected_domain }}",
+        rr: form.rr.value,
+        type: form.type.value,
+        value: form.value.value,
+        ttl: form.ttl.value,
+        enable_ddns: form.enable_ddns.checked,
+        ddns_interface: form.ddns_interface ? form.ddns_interface.value : null,
+        ddns_ip_mode: form.ddns_ip_mode ? form.ddns_ip_mode.value : null
+    };
+    fetch("/add_record", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            alert("新增记录成功！");
+            window.location.reload();
+        } else {
+            alert("新增失败: " + result.message);
+        }
+    });
+}
+function deleteRecord(recordId) {
+    if (confirm("确定要删除这个解析记录吗？")) {
+        fetch("/delete_record/" + recordId, {method: "POST"})
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    refreshRecords();
+                } else {
+                    alert("删除失败！");
+                }
+            });
+    }
+}
+
+function refreshRecords(page = null) {
+    let domain = document.querySelector("select[name='domain']").value;
+    let pageSize = parseInt(document.getElementById("page_size")?.value || 20);
+    let currentPage = page || parseInt(new URLSearchParams(window.location.search).get("page") || 1);
+
+    fetch("/refresh_records", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            domain: domain,
+            page: currentPage,
+            page_size: pageSize
+        })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            updateRecordsTable(result.records);
+            updatePagination(result.page, result.page_size, result.total_count);
+        } else {
+            alert("刷新失败: " + result.message);
+        }
+    });
+}
+
+
+function updateRecordsTable(records) {
+    let tbody = document.querySelector("table tbody");
+    tbody.innerHTML = ""; // 清空现有记录
+
+    records.forEach((record, index) => {
+        let row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${record.RR}</td>
+            <td>${record.Type}</td>
+            <td>${record.Value}</td>
+            <td>${record.TTL}</td>
+            <td>${record.Status == "ENABLE" ? '<span class="badge bg-success">启用</span>' : '<span class="badge bg-secondary">禁用</span>'}</td>
+            <td>${record.update_time}</td>
+            <td>${record.ddns_enabled ? '<span class="badge bg-success">已启用</span>' : '<span class="badge bg-secondary">未启用</span>'}</td>
+            <td>${record.ddns_interface}</td>
+            <td>${record.ddns_ip_mode}</td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteRecord('${record.RecordId}')">删除</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+</script>
+{% endblock %}

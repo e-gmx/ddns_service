@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>运行日志</h2>
+<div class="card">
+    <div class="card-body" style="background:#f8f9fa; height:400px; overflow:auto; font-family:monospace;">
+        <pre id="logContent">{{ log_content }}</pre>
+    </div>
+</div>
+<button class="btn btn-primary mt-3" onclick="refreshLogs()">刷新日志</button>
+
+<script>
+function refreshLogs() {
+    fetch("/logs")
+        .then(res => res.text())
+        .then(html => {
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(html, "text/html");
+            let logContent = doc.querySelector("#logContent").innerHTML;
+            document.querySelector("#logContent").innerHTML = logContent;
+        });
+}
+
+// 可选：5秒自动刷新
+setInterval(refreshLogs, 5000);
+</script>
+{% endblock %}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>登录</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f1f5f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      background: #fff;
+      width: 800px;
+      max-width: 95%;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .left {
+      flex: 1;
+      background: linear-gradient(135deg, #2563eb, #1e3a8a);
+      color: #fff;
+      padding: 50px 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .left h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    .left p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .right {
+      flex: 1;
+      padding: 50px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .right h2 {
+      margin-bottom: 30px;
+      font-size: 24px;
+      color: #1e293b;
+    }
+
+    form input[type="password"] {
+      width: 100%;
+      padding: 14px 15px;
+      font-size: 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      outline: none;
+      transition: 0.3s ease;
+    }
+
+    form input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 0;
+      font-size: 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #1e40af;
+    }
+
+    .error {
+      background-color: #fee2e2;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .left, .right {
+        flex: none;
+        width: 100%;
+      }
+      .left {
+        padding: 30px 20px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <h1>欢迎回来！</h1>
+      <p>动态域名解析(DDNS)管理平台</p>
+    </div>
+    <div class="right">
+      <h2>登录</h2>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% endif %}
+      <form method="post" action="">
+        <input type="password" name="password" placeholder="请输入密码" required />
+        <button type="submit">登录</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

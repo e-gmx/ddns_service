@@ -1,0 +1,7 @@
+Flask
+aliyun-python-sdk-core
+aliyun-python-sdk-alidns
+psutil
+requests
+flask_apscheduler
+gevent

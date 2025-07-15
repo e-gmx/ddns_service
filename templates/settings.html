@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>设置</h2>
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">阿里云 Access Key</label>
+        <input type="text" class="form-control" name="aliyun_access_key" value="{{ config.aliyun_access_key or '' }}">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">阿里云 Access Secret</label>
+        <input type="password" class="form-control" name="aliyun_access_secret" value="{{ config.aliyun_access_secret or '' }}">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">检测间隔（秒）</label>
+        <input type="number" class="form-control" name="check_interval" value="{{ config.check_interval or 600 }}" min="10" required>
+        <div class="form-text">定时查询出口IP并更新动态解析的时间间隔</div>
+    </div>
+
+    <hr>
+
+    <h4 class="mt-4">修改管理员密码</h4>
+
+    <div class="mb-3">
+        <label class="form-label">原密码</label>
+        <input type="password" class="form-control" name="current_password">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">新密码</label>
+        <input type="password" class="form-control" name="new_password">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">确认新密码</label>
+        <input type="password" class="form-control" name="confirm_password">
+    </div>
+
+    {% if password_error %}
+        <div class="alert alert-danger">{{ password_error }}</div>
+    {% elif password_success %}
+        <div class="alert alert-success">{{ password_success }}</div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary">保存</button>
+</form>
+
+{% endblock %}
