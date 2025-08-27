@@ -16,6 +16,7 @@
   * 解析记录管理（records.html）
   * 日志查看（logs.html，支持实时刷新）
   * 配置管理（settings.html）
+  * 登录页面（login.html)
 * 📝 **运行日志**记录到 `app.log`
 
 ---
@@ -30,6 +31,8 @@ aliyun-python-sdk-core
 aliyun-python-sdk-alidns
 psutil
 requests
+flask_apscheduler
+gevent
 ```
 
 ---
