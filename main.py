@@ -93,18 +93,21 @@ def logout():
 
 
 def get_public_ip_by_interface(iface_name):
-    """
-    使用 curl 绑定网卡获取公网IP
-    """
     public_ip_apis = [
         "https://myip.ipip.net",
         "https://ddns.oray.com/checkip",
         "https://4.ipw.cn"
     ]
+
+    local_ip = get_interface_ip(iface_name)
+    if not local_ip:
+        logger.error(f"无法获取网卡 {iface_name} 的 IP 地址")
+        return None
+
     for api in public_ip_apis:
         try:
             result = subprocess.run(
-                ["curl", "--interface", iface_name, "--silent", "--max-time", "5", api],
+                ["curl", "--interface", local_ip, "--silent", "--max-time", "5", api],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
@@ -112,7 +115,7 @@ def get_public_ip_by_interface(iface_name):
             if result.returncode == 0:
                 ip = extract_ip(result.stdout)
                 if ip:
-                    logger.info(f"通过网卡 {iface_name} 从 {api} 获取公网IP: {ip}")
+                    logger.info(f"通过网卡 {iface_name}({local_ip}) 从 {api} 获取公网IP: {ip}")
                     return ip
                 else:
                     logger.warning(f"{api} 返回无有效IP: {result.stdout}")
